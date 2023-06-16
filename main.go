@@ -18,23 +18,16 @@ type HeaderInfo struct {
 
 type Data [][]interface{}
 
-func processChunk(data Data, sheet *xlsx.Sheet, wg *sync.WaitGroup) {
-	for _, item := range data {
-		newRow := sheet.AddRow()
-		newRow.Sheet.SetColWidth(0, len(data), 25)
-		for _, value := range item {
-			cell := newRow.AddCell()
-			cell.SetValue(value)
-		}
+func simulateLargeData(num int) Data {
+	var data Data
+	for i := 0; i < num; i++ {
+		data = append(data, []interface{}{"John", "30"})
 	}
-	wg.Done()
+	return data
 }
 
 func main() {
-	var data Data
-	for i := 0; i < 1_000; i++ {
-		data = append(data, []interface{}{"John", "30"})
-	}
+	data := simulateLargeData(50_000)
 
 	chunkSize := len(data) / numWorkers
 	var chunks = make([]Data, numWorkers)
@@ -42,7 +35,6 @@ func main() {
 
 	file := xlsx.NewFile()
 	sheet, _ := file.AddSheet("Sheet1")
-
 	headers := []HeaderInfo{
 		{en: "Name", ar: "الاسم"},
 		{en: "Age", ar: "العمر"},
@@ -56,11 +48,23 @@ func main() {
 	}
 
 	wg.Wait()
-
+	fmt.Println("ASdsadsad")
 	err := file.Save("example.xlsx")
 	if err != nil {
 		fmt.Println("Error saving file:", err)
 	}
+}
+
+func processChunk(data Data, sheet *xlsx.Sheet, wg *sync.WaitGroup) {
+	for _, item := range data {
+		newRow := sheet.AddRow()
+		newRow.Sheet.SetColWidth(0, len(data), 25)
+		for _, value := range item {
+			cell := newRow.AddCell()
+			cell.SetValue(value)
+		}
+	}
+	wg.Done()
 }
 
 func chunkData(chunkSize int, data Data, chunks []Data) []Data {
