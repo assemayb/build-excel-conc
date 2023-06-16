@@ -17,21 +17,23 @@ type HeaderInfo struct {
 	ar string `json:"ar"`
 }
 
-type Data [][]interface{}
+type Row []string
+type Data []Row
+type ChunkOfData []Data
 
 func simulateLargeData(num int) Data {
 	var data Data
 	for i := 0; i < num; i++ {
 		randomString := fmt.Sprintf("Random String %d", i)
 		randomNumber := fmt.Sprintf("%d", i)
-		data = append(data, []interface{}{randomString, randomNumber})
+		row := Row{randomString, randomNumber}
+		data = append(data, row)
 	}
 	return data
 }
 
 func main() {
-	data := simulateLargeData(50_000)
-
+	data := simulateLargeData(1_000)
 	file := excelize.NewFile()
 	sheetName := "Sheet1"
 	index, err := file.NewSheet(sheetName)
@@ -40,59 +42,43 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	defer func() {
-		if err := file.Close(); err != nil {
-			fmt.Println(err)
-		}
-	}()
+	defer file.Close()
 
 	headers := []HeaderInfo{
-		{
-			en: "Name",
-			ar: "الاسم",
-		},
-		{
-			en: "Age",
-			ar: "العمر",
-		},
+		{en: "Name", ar: "الاسم"},
+		{en: "Age", ar: "العمر"},
 	}
 	addExcelFileHeaders(headers, file, sheetName, "en")
 
 	chunkSize := len(data) / numWorkers
-	var chunks = make([]Data, numWorkers)
-	chunks = chunkIncomingData(chunkSize, data, chunks)
+	var listOfRows = make(ChunkOfData, 0, numWorkers)
+	listOfRows = chunkIncomingData(chunkSize, data, listOfRows)
 
-	// Process each chunk of data in a separate goroutine
 	var wg sync.WaitGroup
-	for _, chunk := range chunks {
-
+	for idx, chunkOfRows := range listOfRows {
 		wg.Add(1)
-		go func(data Data) {
-			rowIndex, err := file.GetSheetIndex(sheetName)
+		go func(dataChunk Data) {
+
+			rowIndex := idx*chunkSize + 1
+			fmt.Println("Processing chunk", idx)
 			if err != nil {
 				panic(err)
 			}
 
-			for _, item := range data {
-				for i, value := range item {
+			for _, row := range dataChunk {
+				for i, cellValue := range row {
 					cell := fmt.Sprintf("%s%d", string('A'+i), rowIndex)
-					file.SetCellValue(sheetName, cell, value)
+					file.SetCellValue(sheetName, cell, cellValue)
 				}
 				rowIndex++
 			}
 			wg.Done()
 
-		}(chunk)
-
+		}(chunkOfRows)
 	}
 
-	// Wait for all the goroutines to complete
 	wg.Wait()
-
-	fmt.Println("Done processing chunks")
 	err = file.SaveAs("test.xlsx")
-
 	if err != nil {
 		panic(err)
 	}
@@ -126,20 +112,20 @@ func chunkIncomingData(chunkSize int, data Data, chunks []Data) []Data {
 		chunks[i] = data[start:end]
 		chunks = append(chunks, data[start:end])
 	}
+
 	return chunks
 }
 
 func addExcelFileHeaders(headers []HeaderInfo, file *excelize.File, sheetName string, lang string) {
 	for i, header := range headers {
-		var headerValue string
-
+		headerItem := ""
 		if lang == "ar" {
-			headerValue = header.ar
+			headerItem = header.ar
 		} else {
-			headerValue = header.en
+			headerItem = header.en
 		}
 
 		cell := fmt.Sprintf("%s%d", string('A'+i), 1)
-		file.SetCellValue(sheetName, cell, headerValue)
+		file.SetCellValue(sheetName, cell, headerItem)
 	}
 }
