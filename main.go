@@ -22,17 +22,15 @@ type ChunkOfData []Data
 
 func simulateLargeData(num int) Data {
 	var data Data
-	for i := 0; i < num; i++ {
-		randomString := fmt.Sprintf("randomString%d", i)
-		randomNumber := fmt.Sprintf("%d", i)
-		row := Row{randomString, randomNumber}
+	for i := 0; i <= num; i++ {
+		row := Row{"randomString", "randomNumber", "address", "phoneNum", "email@mail.com"}
 		data = append(data, row)
 	}
 	return data
 }
 
 func main() {
-	data := simulateLargeData(500)
+	data := simulateLargeData(5)
 	file := excelize.NewFile()
 	sheetName := "Sheet1"
 	index, err := file.NewSheet(sheetName)
@@ -42,10 +40,13 @@ func main() {
 	file.SetActiveSheet(index)
 	defer file.Close()
 
-	lang := "ar"
+	lang := "en"
 	headers := []HeaderInfo{
 		{en: "Name", ar: "الاسم"},
 		{en: "Age", ar: "العمر"},
+		{en: "Address", ar: "العنوان"},
+		{en: "Phone", ar: "الهاتف"},
+		{en: "Email", ar: "البريد الالكتروني"},
 	}
 
 	addExcelFileHeaders(headers, file, sheetName, lang)
@@ -70,7 +71,8 @@ func processChunk(dataChunk Data, wg *sync.WaitGroup, chunkIndex int, chunkSize 
 	for idx, row := range dataChunk {
 		rowIndex := chunkIndex*chunkSize + idx
 		for i, cellValue := range row {
-			cell := fmt.Sprintf("%s%d", string('A'+i), rowIndex)
+			cell := fmt.Sprintf("%s%d", string('A'+i), rowIndex+2)
+			fmt.Println("cell", cell)
 			file.SetCellValue(sheetName, cell, cellValue)
 		}
 		idx++
