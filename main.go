@@ -37,34 +37,31 @@ func main() {
 	file := excelize.NewFile()
 	sheetName := "Sheet1"
 	index, err := file.NewSheet(sheetName)
-	file.SetActiveSheet(index)
-
 	if err != nil {
 		panic(err)
 	}
+	file.SetActiveSheet(index)
 	defer file.Close()
-
+	lang := "en"
 	headers := []HeaderInfo{
 		{en: "Name", ar: "الاسم"},
 		{en: "Age", ar: "العمر"},
 	}
-	addExcelFileHeaders(headers, file, sheetName, "en")
+	addExcelFileHeaders(headers, file, sheetName, lang)
 
 	chunkSize := len(data) / numWorkers
-	var listOfRows = make(ChunkOfData, 0, numWorkers)
-	listOfRows = chunkIncomingData(chunkSize, data, listOfRows)
+	var listOfRowsChunks = make(ChunkOfData, numWorkers)
+
+	listOfRowsChunks = chunkIncomingData(chunkSize, data, listOfRowsChunks)
 
 	var wg sync.WaitGroup
-	for idx, chunkOfRows := range listOfRows {
+
+	for chunkIndex, chunkOfRows := range listOfRowsChunks {
+
 		wg.Add(1)
 		go func(dataChunk Data) {
 
-			rowIndex := idx*chunkSize + 1
-			fmt.Println("Processing chunk", idx)
-			if err != nil {
-				panic(err)
-			}
-
+			rowIndex := chunkIndex*chunkSize + 1
 			for _, row := range dataChunk {
 				for i, cellValue := range row {
 					cell := fmt.Sprintf("%s%d", string('A'+i), rowIndex)
@@ -102,7 +99,7 @@ func processChunk(data Data, sheet *xlsx.Sheet, wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func chunkIncomingData(chunkSize int, data Data, chunks []Data) []Data {
+func chunkIncomingData(chunkSize int, data Data, chunks []Data) ChunkOfData {
 	for i := 0; i < numWorkers; i++ {
 		start := i * chunkSize
 		end := start + chunkSize
