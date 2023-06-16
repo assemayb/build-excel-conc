@@ -22,7 +22,7 @@ type ChunkOfData []Data
 
 func simulateLargeData(num int) Data {
 	var data Data
-	for i := 0; i <= num; i++ {
+	for i := 1; i <= num; i++ {
 		row := Row{"randomString", "randomNumber", "address", "phoneNum", "email@mail.com"}
 		data = append(data, row)
 	}
@@ -30,10 +30,11 @@ func simulateLargeData(num int) Data {
 }
 
 func main() {
-	data := simulateLargeData(5)
+	data := simulateLargeData(50)
 	file := excelize.NewFile()
 	sheetName := "Sheet1"
 	index, err := file.NewSheet(sheetName)
+
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +73,7 @@ func processChunk(dataChunk Data, wg *sync.WaitGroup, chunkIndex int, chunkSize 
 		rowIndex := chunkIndex*chunkSize + idx
 		for i, cellValue := range row {
 			cell := fmt.Sprintf("%s%d", string('A'+i), rowIndex+2)
-			fmt.Println("cell", cell)
+			file.SetColWidth(sheetName, cell, cell, 50)
 			file.SetCellValue(sheetName, cell, cellValue)
 		}
 		idx++
@@ -93,6 +94,16 @@ func chunkIncomingData(chunkSize int, data Data, chunks []Data) ChunkOfData {
 }
 
 func addExcelFileHeaders(headers []HeaderInfo, file *excelize.File, sheetName string, lang string) {
+	var rightToLeft bool
+	if lang == "ar" {
+		rightToLeft = true
+	}
+	if rightToLeft {
+		file.SetSheetView(sheetName, 0, &excelize.ViewOptions{
+			RightToLeft: &rightToLeft,
+		})
+	}
+
 	for i, header := range headers {
 		headerItem := ""
 		if lang == "ar" {
