@@ -16,7 +16,7 @@ type HeaderInfo struct {
 	ar string `json:"ar"`
 }
 
-type Row []string
+type Row []any
 type Data []Row
 type ChunkOfData []Data
 
@@ -30,7 +30,7 @@ func simulateLargeData(num int) Data {
 }
 
 func main() {
-	data := simulateLargeData(50)
+	data := simulateLargeData(20)
 	file := excelize.NewFile()
 	sheetName := "Sheet1"
 	index, err := file.NewSheet(sheetName)
