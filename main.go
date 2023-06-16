@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tealeg/xlsx"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -24,7 +23,7 @@ type ChunkOfData []Data
 func simulateLargeData(num int) Data {
 	var data Data
 	for i := 0; i < num; i++ {
-		randomString := fmt.Sprintf("Random String %d", i)
+		randomString := fmt.Sprintf("randomString%d", i)
 		randomNumber := fmt.Sprintf("%d", i)
 		row := Row{randomString, randomNumber}
 		data = append(data, row)
@@ -33,7 +32,7 @@ func simulateLargeData(num int) Data {
 }
 
 func main() {
-	data := simulateLargeData(5)
+	data := simulateLargeData(500)
 	file := excelize.NewFile()
 	sheetName := "Sheet1"
 	index, err := file.NewSheet(sheetName)
@@ -42,67 +41,39 @@ func main() {
 	}
 	file.SetActiveSheet(index)
 	defer file.Close()
-	lang := "en"
+
+	lang := "ar"
 	headers := []HeaderInfo{
 		{en: "Name", ar: "الاسم"},
 		{en: "Age", ar: "العمر"},
 	}
 
-	for _, rowsList := range data {
-		for row := 0; row < len(rowsList); row++ {
-			file.InsertRows(sheetName, row, 1)
-		}
-	}
-
 	addExcelFileHeaders(headers, file, sheetName, lang)
-
 	chunkSize := len(data) / numWorkers
-	var listOfRowsChunks = make(ChunkOfData, numWorkers)
-
+	listOfRowsChunks := make(ChunkOfData, numWorkers)
 	listOfRowsChunks = chunkIncomingData(chunkSize, data, listOfRowsChunks)
-	fmt.Println(listOfRowsChunks)
 
 	var wg sync.WaitGroup
-
 	for chunkIndex, chunkOfRows := range listOfRowsChunks {
-
 		wg.Add(1)
-		go func(dataChunk Data) {
-
-			rowIndex := chunkIndex*chunkSize + 1
-			for _, row := range dataChunk {
-				for i, cellValue := range row {
-					cell := fmt.Sprintf("%s%d", string('A'+i), rowIndex)
-					file.SetCellValue(sheetName, cell, cellValue)
-				}
-				rowIndex++
-			}
-			wg.Done()
-
-		}(chunkOfRows)
+		go processChunk(chunkOfRows, &wg, chunkIndex, chunkSize, file, sheetName)
 	}
-
 	wg.Wait()
+
 	err = file.SaveAs("test.xlsx")
 	if err != nil {
 		panic(err)
 	}
 }
 
-func processChunk(data Data, sheet *xlsx.Sheet, wg *sync.WaitGroup) {
-	for _, item := range data {
-
-		newRow := sheet.AddRow()
-		error := newRow.Sheet.SetColWidth(0, len(data), 25)
-		if error != nil {
-			panic(error)
+func processChunk(dataChunk Data, wg *sync.WaitGroup, chunkIndex int, chunkSize int, file *excelize.File, sheetName string) {
+	for idx, row := range dataChunk {
+		rowIndex := chunkIndex*chunkSize + idx
+		for i, cellValue := range row {
+			cell := fmt.Sprintf("%s%d", string('A'+i), rowIndex)
+			file.SetCellValue(sheetName, cell, cellValue)
 		}
-
-		for _, value := range item {
-			cell := newRow.AddCell()
-			cell.SetValue(value)
-		}
-
+		idx++
 	}
 	wg.Done()
 }
@@ -111,14 +82,11 @@ func chunkIncomingData(chunkSize int, data Data, chunks []Data) ChunkOfData {
 	for i := 0; i < numWorkers; i++ {
 		start := i * chunkSize
 		end := start + chunkSize
-
-		if i == 3 {
+		if i == numWorkers {
 			end = len(data)
 		}
 		chunks[i] = data[start:end]
-		chunks = append(chunks, data[start:end])
 	}
-
 	return chunks
 }
 
