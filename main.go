@@ -33,7 +33,7 @@ func simulateLargeData(num int) Data {
 }
 
 func main() {
-	data := simulateLargeData(1_000)
+	data := simulateLargeData(5)
 	file := excelize.NewFile()
 	sheetName := "Sheet1"
 	index, err := file.NewSheet(sheetName)
@@ -47,12 +47,20 @@ func main() {
 		{en: "Name", ar: "الاسم"},
 		{en: "Age", ar: "العمر"},
 	}
+
+	for _, rowsList := range data {
+		for row := 0; row < len(rowsList); row++ {
+			file.InsertRows(sheetName, row, 1)
+		}
+	}
+
 	addExcelFileHeaders(headers, file, sheetName, lang)
 
 	chunkSize := len(data) / numWorkers
 	var listOfRowsChunks = make(ChunkOfData, numWorkers)
 
 	listOfRowsChunks = chunkIncomingData(chunkSize, data, listOfRowsChunks)
+	fmt.Println(listOfRowsChunks)
 
 	var wg sync.WaitGroup
 
@@ -103,6 +111,7 @@ func chunkIncomingData(chunkSize int, data Data, chunks []Data) ChunkOfData {
 	for i := 0; i < numWorkers; i++ {
 		start := i * chunkSize
 		end := start + chunkSize
+
 		if i == 3 {
 			end = len(data)
 		}
