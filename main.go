@@ -21,7 +21,7 @@ type Data [][]interface{}
 func processChunk(data Data, sheet *xlsx.Sheet, wg *sync.WaitGroup) {
 	for _, item := range data {
 		newRow := sheet.AddRow()
-		// newRow.Sheet.SetColWidth(0, len(data), 25)
+		newRow.Sheet.SetColWidth(0, len(data), 25)
 		for _, value := range item {
 			cell := newRow.AddCell()
 			cell.SetValue(value)
@@ -32,7 +32,7 @@ func processChunk(data Data, sheet *xlsx.Sheet, wg *sync.WaitGroup) {
 
 func main() {
 	var data Data
-	for i := 0; i < 1_000_00; i++ {
+	for i := 0; i < 1_000; i++ {
 		data = append(data, []interface{}{"John", "30"})
 	}
 
@@ -50,23 +50,13 @@ func main() {
 	}
 
 	file := xlsx.NewFile()
-
 	sheet, _ := file.AddSheet("Sheet1")
-	lang := "en"
 
 	headers := []HeaderInfo{
 		{en: "Name", ar: "الاسم"},
 		{en: "Age", ar: "العمر"},
 	}
-	headerRow := sheet.AddRow()
-	for _, header := range headers {
-		cell := headerRow.AddCell()
-		if lang == "en" {
-			cell.Value = header.en
-		} else {
-			cell.Value = header.ar
-		}
-	}
+	addExcelFileHeaders(headers, sheet, "en")
 
 	var wg sync.WaitGroup
 	for _, chunk := range chunks {
@@ -79,5 +69,17 @@ func main() {
 	err := file.Save("example.xlsx")
 	if err != nil {
 		fmt.Println("Error saving file:", err)
+	}
+}
+
+func addExcelFileHeaders(headers []HeaderInfo, sheet *xlsx.Sheet, lang string) {
+	headerRow := sheet.AddRow()
+	for _, header := range headers {
+		cell := headerRow.AddCell()
+		if lang == "en" {
+			cell.Value = header.en
+		} else {
+			cell.Value = header.ar
+		}
 	}
 }
