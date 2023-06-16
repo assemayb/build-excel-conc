@@ -38,16 +38,7 @@ func main() {
 
 	chunkSize := len(data) / numWorkers
 	var chunks = make([]Data, numWorkers)
-
-	for i := 0; i < numWorkers; i++ {
-		start := i * chunkSize
-		end := start + chunkSize
-		if i == 3 {
-			end = len(data)
-		}
-		chunks[i] = data[start:end]
-		chunks = append(chunks, data[start:end])
-	}
+	chunks = chunkData(chunkSize, data, chunks)
 
 	file := xlsx.NewFile()
 	sheet, _ := file.AddSheet("Sheet1")
@@ -70,6 +61,19 @@ func main() {
 	if err != nil {
 		fmt.Println("Error saving file:", err)
 	}
+}
+
+func chunkData(chunkSize int, data Data, chunks []Data) []Data {
+	for i := 0; i < numWorkers; i++ {
+		start := i * chunkSize
+		end := start + chunkSize
+		if i == 3 {
+			end = len(data)
+		}
+		chunks[i] = data[start:end]
+		chunks = append(chunks, data[start:end])
+	}
+	return chunks
 }
 
 func addExcelFileHeaders(headers []HeaderInfo, sheet *xlsx.Sheet, lang string) {
