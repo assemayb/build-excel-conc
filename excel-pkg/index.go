@@ -12,6 +12,9 @@ var (
 )
 
 func BuildExcelFile(data Data, headers []HeaderInfo, lang string, sheetName string) *excelize.File {
+	fmt.Println("Building Excel File")
+	fmt.Println(data)
+
 	file := excelize.NewFile()
 	index, err := file.NewSheet(sheetName)
 	if err != nil {
@@ -26,6 +29,10 @@ func BuildExcelFile(data Data, headers []HeaderInfo, lang string, sheetName stri
 		}
 	}()
 
+	if len(data) < 100 {
+		numWorkers = 1
+	}
+
 	addExcelFileHeaders(headers, file, sheetName, lang)
 	chunkSize := len(data) / numWorkers
 	listOfRowsChunks := make(ChunkOfData, numWorkers)
@@ -37,7 +44,6 @@ func BuildExcelFile(data Data, headers []HeaderInfo, lang string, sheetName stri
 		go processChunk(chunkOfRows, &wg, chunkIndex, chunkSize, file, sheetName)
 	}
 	wg.Wait()
-
 	return file
 }
 
@@ -51,7 +57,9 @@ func processChunk(dataChunk Data, wg *sync.WaitGroup, chunkIndex int, chunkSize 
 		}
 		idx++
 	}
+	fmt.Println("Chunk Processed")
 	wg.Done()
+
 }
 
 func chunkIncomingData(chunkSize int, data Data, chunks []Data) ChunkOfData {
@@ -67,6 +75,12 @@ func chunkIncomingData(chunkSize int, data Data, chunks []Data) ChunkOfData {
 }
 
 func addExcelFileHeaders(headers []HeaderInfo, file *excelize.File, sheetName string, lang string) {
+
+	if len(headers) == 0 {
+		panic("headers are empty")
+		return
+	}
+
 	var rightToLeft bool
 	if lang == "ar" {
 		rightToLeft = true
@@ -80,9 +94,9 @@ func addExcelFileHeaders(headers []HeaderInfo, file *excelize.File, sheetName st
 	for i, header := range headers {
 		headerItem := ""
 		if lang == "ar" {
-			headerItem = header.ar
+			headerItem = header.Ar
 		} else {
-			headerItem = header.en
+			headerItem = header.En
 		}
 
 		cell := fmt.Sprintf("%s%d", string('A'+i), 1)

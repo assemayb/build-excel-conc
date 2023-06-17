@@ -5,8 +5,8 @@ import (
 )
 
 type RequestBody struct {
-	Headers   []excelPkg.HeaderInfo `json:"headers"`
-	Data      excelPkg.Data         `json:"data"`
-	Lang      string                `json:"lang"`
-	SheetName string                `json:"sheetName"`
+	Headers   excelPkg.Headers `json:"headers"`
+	Data      excelPkg.Data    `json:"data"`
+	Lang      string           `json:"lang"`
+	SheetName string           `json:"sheetName"`
 }

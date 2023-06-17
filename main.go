@@ -14,7 +14,7 @@ var (
 func init() {
 	server = gin.New()
 	server.Use(gin.Logger(), gin.Recovery())
-	gin.SetMode(gin.ReleaseMode)
+
 }
 
 func main() {
@@ -25,4 +25,7 @@ func main() {
 	})
 	server.POST("/api/excel/build", controller.CreateExcelFile)
 	log.Fatal(server.Run(":9007"))
+
+	//  TODO: change this in production
+	gin.SetMode(gin.TestMode)
 }
