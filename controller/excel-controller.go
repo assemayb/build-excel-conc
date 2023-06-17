@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	excelPkg "excel-builder-conc/excel-pkg"
 	"fmt"
 	"log"
@@ -25,11 +26,21 @@ func CreateExcelFile(ctx *gin.Context) {
 	}
 	file := excelPkg.BuildExcelFile(body.Data, body.Headers, body.Lang, body.SheetName)
 
-	err = file.SaveAs("test.xlsx")
+	// err = file.SaveAs("test.xlsx")
+	// if err != nil {
+	// 	log.Println(err)
+	// 	ctx.JSON(400, gin.H{"error": err.Error()})
+	// 	return
+	// }
+
+	var fileBuffer = new(bytes.Buffer)
+	err = file.Write(fileBuffer)
 	if err != nil {
-		log.Println(err)
-		ctx.JSON(400, gin.H{"error": err.Error()})
-		return
+		fmt.Println("Error Writing file data to a buffer", err)
+		panic(err)
 	}
-	ctx.JSON(http.StatusCreated, gin.H{"message": "file Created Successfully"})
+	// send the buffer as a response
+	ctx.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBuffer.Bytes())
+
+	// ctx.JSON(http.StatusCreated, gin.H{"message": "file Created Successfully"})
 }
