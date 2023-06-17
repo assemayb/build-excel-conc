@@ -1,118 +1,28 @@
 package main
 
 import (
-	"fmt"
-	"sync"
+	controller "excel-builder-conc/controller"
+	"log"
 
-	"github.com/xuri/excelize/v2"
+	"github.com/gin-gonic/gin"
 )
 
 var (
-	numWorkers = 5
+	server *gin.Engine
 )
 
-type HeaderInfo struct {
-	en string `json:"en"`
-	ar string `json:"ar"`
-}
-
-type Row []any
-type Data []Row
-type ChunkOfData []Data
-
-func simulateLargeData(num int) Data {
-	var data Data
-	for i := 1; i <= num; i++ {
-		row := Row{"randomString", "randomNumber", "address", "phoneNum", "email@mail.com"}
-		data = append(data, row)
-	}
-	return data
+func init() {
+	server = gin.New()
+	server.Use(gin.Logger(), gin.Recovery())
+	gin.SetMode(gin.ReleaseMode)
 }
 
 func main() {
-	data := simulateLargeData(20)
-	file := excelize.NewFile()
-	sheetName := "Sheet1"
-	index, err := file.NewSheet(sheetName)
-
-	if err != nil {
-		panic(err)
-	}
-	file.SetActiveSheet(index)
-	defer file.Close()
-
-	lang := "en"
-	headers := []HeaderInfo{
-		{en: "Name", ar: "الاسم"},
-		{en: "Age", ar: "العمر"},
-		{en: "Address", ar: "العنوان"},
-		{en: "Phone", ar: "الهاتف"},
-		{en: "Email", ar: "البريد الالكتروني"},
-	}
-
-	addExcelFileHeaders(headers, file, sheetName, lang)
-	chunkSize := len(data) / numWorkers
-	listOfRowsChunks := make(ChunkOfData, numWorkers)
-	listOfRowsChunks = chunkIncomingData(chunkSize, data, listOfRowsChunks)
-
-	var wg sync.WaitGroup
-	for chunkIndex, chunkOfRows := range listOfRowsChunks {
-		wg.Add(1)
-		go processChunk(chunkOfRows, &wg, chunkIndex, chunkSize, file, sheetName)
-	}
-	wg.Wait()
-
-	err = file.SaveAs("test.xlsx")
-	if err != nil {
-		panic(err)
-	}
-}
-
-func processChunk(dataChunk Data, wg *sync.WaitGroup, chunkIndex int, chunkSize int, file *excelize.File, sheetName string) {
-	for idx, row := range dataChunk {
-		rowIndex := chunkIndex*chunkSize + idx
-		for i, cellValue := range row {
-			cell := fmt.Sprintf("%s%d", string('A'+i), rowIndex+2)
-			file.SetColWidth(sheetName, cell, cell, 50)
-			file.SetCellValue(sheetName, cell, cellValue)
-		}
-		idx++
-	}
-	wg.Done()
-}
-
-func chunkIncomingData(chunkSize int, data Data, chunks []Data) ChunkOfData {
-	for i := 0; i < numWorkers; i++ {
-		start := i * chunkSize
-		end := start + chunkSize
-		if i == numWorkers {
-			end = len(data)
-		}
-		chunks[i] = data[start:end]
-	}
-	return chunks
-}
-
-func addExcelFileHeaders(headers []HeaderInfo, file *excelize.File, sheetName string, lang string) {
-	var rightToLeft bool
-	if lang == "ar" {
-		rightToLeft = true
-	}
-	if rightToLeft {
-		file.SetSheetView(sheetName, 0, &excelize.ViewOptions{
-			RightToLeft: &rightToLeft,
+	server.GET("/ping", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "pong",
 		})
-	}
-
-	for i, header := range headers {
-		headerItem := ""
-		if lang == "ar" {
-			headerItem = header.ar
-		} else {
-			headerItem = header.en
-		}
-
-		cell := fmt.Sprintf("%s%d", string('A'+i), 1)
-		file.SetCellValue(sheetName, cell, headerItem)
-	}
+	})
+	server.POST("/api/excel/build", controller.CreateExcelFile)
+	log.Fatal(server.Run(":9007"))
 }
