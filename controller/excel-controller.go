@@ -28,8 +28,5 @@ func CreateExcelFile(ctx *gin.Context) {
 		ctx.JSON(400, gin.H{"error": err.Error()})
 		panic(err)
 	}
-	// send the buffer as a response
 	ctx.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBuffer.Bytes())
-
-	// ctx.JSON(http.StatusCreated, gin.H{"message": "file Created Successfully"})
 }

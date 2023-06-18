@@ -12,8 +12,6 @@ var (
 )
 
 func BuildExcelFile(data Data, headers []HeaderInfo, lang string, sheetName string) *excelize.File {
-	fmt.Println("Building Excel File")
-	fmt.Println(data)
 
 	file := excelize.NewFile()
 	index, err := file.NewSheet(sheetName)
@@ -78,7 +76,6 @@ func addExcelFileHeaders(headers []HeaderInfo, file *excelize.File, sheetName st
 
 	if len(headers) == 0 {
 		panic("headers are empty")
-		return
 	}
 
 	var rightToLeft bool
