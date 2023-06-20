@@ -1,7 +1,7 @@
 package controller
 
 import (
-	excelPkg "excel-builder-conc/excel-pkg"
+	excelPkg "excel-builder-conc/excel-builder"
 )
 
 type RequestBody struct {

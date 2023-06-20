@@ -27,5 +27,5 @@ func main() {
 	log.Fatal(server.Run(":9007"))
 
 	//  TODO: change this in production
-	gin.SetMode(gin.TestMode)
+	// gin.SetMode(gin.TestMode)
 }
